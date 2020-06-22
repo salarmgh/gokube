@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,7 +15,7 @@ func listStatefulSets() []string {
 	if err != nil {
 		panic(err)
 	}
-	statefulSets, err := clientset.AppsV1().StatefulSets("app").List(context.TODO(), metav1.ListOptions{})
+	statefulSets, err := clientset.AppsV1().StatefulSets("app").List(metav1.ListOptions{})
 	if err != nil {
 		panic(err)
 	}

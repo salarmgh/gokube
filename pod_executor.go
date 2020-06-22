@@ -1,25 +1,32 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"strings"
+	"time"
 
+	"github.com/elastic/go-elasticsearch/esapi"
+	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdin io.Reader) (string, string, error) {
+func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdin io.Reader) {
+	es, _ := elasticsearch.NewDefaultClient()
 	config, err := GetClientConfig()
 	if err != nil {
-		return "", "", err
+		log.Println(err)
 	}
 
 	clientset, err := GetClientsetFromConfig(config)
 	if err != nil {
-		return "", "", err
+		log.Println(err)
 	}
 
 	req := clientset.CoreV1().RESTClient().Post().
@@ -29,7 +36,7 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 		SubResource("exec")
 	scheme := runtime.NewScheme()
 	if err := core_v1.AddToScheme(scheme); err != nil {
-		return "", "", fmt.Errorf("error adding to scheme: %v", err)
+		log.Println(err)
 	}
 
 	parameterCodec := runtime.NewParameterCodec(scheme)
@@ -48,19 +55,54 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {
-		return "", "", fmt.Errorf("error while creating Executor: %v", err)
+		log.Println(err)
 	}
 
-	var stdout, stderr bytes.Buffer
-	err = exec.Stream(remotecommand.StreamOptions{
-		Stdin:  stdin,
-		Stdout: &stdout,
-		Stderr: &stderr,
-		Tty:    false,
-	})
-	if err != nil {
-		return "", "", fmt.Errorf("error in Stream: %v", err)
+	//var stdout, stderr bytes.Buffer
+	stdout := new(Buffer)
+	stderr := new(bytes.Buffer)
+	ch := make(chan bool)
+	go func(stdin *bytes.Buffer, stdout *Buffer, stderr *bytes.Buffer, ch chan bool) {
+		err = exec.Stream(remotecommand.StreamOptions{
+			Stdin:  nil,
+			Stdout: stdout,
+			Stderr: stderr,
+			Tty:    false,
+		})
+		if err != nil {
+			log.Println(err)
+			ch <- false
+		}
+		ch <- true
+	}(nil, stdout, stderr, ch)
+	buf := bufio.NewReader(stdout)
+	isFinished := false
+	for !isFinished {
+		select {
+		case _, ok := <-ch:
+			if ok {
+				isFinished = true
+			}
+		default:
+			line, _, _ := buf.ReadLine()
+			if len(line) == 0 {
+				time.Sleep(time.Second)
+				break
+			}
+			var b strings.Builder
+			b.WriteString(`{"message" : "`)
+			b.WriteString(string(line))
+			b.WriteString(`"}`)
+			req := esapi.IndexRequest{
+				Index: "test",
+				Body:  strings.NewReader(b.String()),
+			}
+			res, err := req.Do(context.Background(), es)
+			if err != nil {
+				log.Fatalf("Error getting response: %s", err)
+			}
+			defer res.Body.Close()
+			time.Sleep(time.Second)
+		}
 	}
-
-	return stdout.String(), stderr.String(), nil
 }
