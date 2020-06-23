@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func listStatefulSets() []string {
+func ListStatefulSets() []string {
 	var statefulSetNames []string
 	config, err := GetClientConfig()
 	if err != nil {
