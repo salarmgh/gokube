@@ -1,4 +1,4 @@
-package main
+package gokube
 
 import (
 	"k8s.io/client-go/kubernetes"
