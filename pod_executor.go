@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -48,10 +47,6 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 		Stderr:    true,
 		TTY:       false,
 	}, parameterCodec)
-
-	if debug {
-		fmt.Println("Request URL:", req.URL().String())
-	}
 
 	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
 	if err != nil {

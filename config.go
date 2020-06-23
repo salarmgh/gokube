@@ -13,9 +13,6 @@ import (
 func GetClientConfig() (*rest.Config, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		if debug {
-			fmt.Printf("Unable to create config. Error: %+v\n", err)
-		}
 		err1 := err
 		kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
