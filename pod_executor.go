@@ -23,12 +23,8 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 		},
 	}
 	es, _ := elasticsearch.NewClient(cfg)
-	config, err := GetClientConfig()
-	if err != nil {
-		log.Println(err)
-	}
 
-	clientset, err := GetClientsetFromConfig(config)
+	clientset, err := GetClientsetFromConfig(cfg)
 	if err != nil {
 		log.Println(err)
 	}
