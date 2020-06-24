@@ -24,7 +24,12 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 	}
 	es, _ := elasticsearch.NewClient(cfg)
 
-	clientset, err := GetClientsetFromConfig(cfg)
+	config, err := GetClientConfig()
+	if err != nil {
+		log.Println(err)
+	}
+
+	clientset, err := GetClientsetFromConfig(config)
 	if err != nil {
 		log.Println(err)
 	}
@@ -81,6 +86,7 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 			}
 		default:
 			line, _, _ := buf.ReadLine()
+			log.Println(line)
 			if len(line) == 0 {
 				time.Sleep(time.Second)
 				break
