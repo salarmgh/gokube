@@ -17,7 +17,12 @@ import (
 )
 
 func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdin io.Reader) {
-	es, _ := elasticsearch.NewDefaultClient()
+	cfg := elasticsearch.Config{
+		Addresses: []string{
+			"http://elasticsearch:9200",
+		},
+	}
+	es, _ := elasticsearch.NewClient(cfg)
 	config, err := GetClientConfig()
 	if err != nil {
 		log.Println(err)
