@@ -74,7 +74,7 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 			log.Println(err)
 			ch <- false
 		}
-		log.Println(*stdout.String())
+		log.Println(*stdout.Buffer.String())
 		ch <- true
 	}(nil, stdout, stderr, ch)
 	buf := bufio.NewReader(stdout)
