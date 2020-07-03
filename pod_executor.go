@@ -2,68 +2,60 @@ package gokube
 
 import (
 	"bufio"
-	"bytes"
-	"context"
 	"io"
-	"log"
-	"strings"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/esapi"
-	elasticsearch "github.com/elastic/go-elasticsearch/v7"
 	core_v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdin io.Reader) {
-	cfg := elasticsearch.Config{
-		Addresses: []string{
-			"http://elasticsearch:9200",
-		},
-	}
-	es, _ := elasticsearch.NewClient(cfg)
+type Result struct {
+	Message string
+	Type    string
+	Error   error
+}
 
-	config, err := GetClientConfig()
-	if err != nil {
-		log.Println(err)
-	}
-
-	clientset, err := GetClientsetFromConfig(config)
-	if err != nil {
-		log.Println(err)
-	}
-
-	req := clientset.CoreV1().RESTClient().Post().
+func (k *Kube) ExecToPod(command []string, containerName string, podName string,
+	namespace string, resultChan chan Result) {
+	signal := make(chan bool)
+	defer close(resultChan)
+	defer close(signal)
+	req := k.clientset.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Name(podName).
 		Namespace(namespace).
 		SubResource("exec")
 	scheme := runtime.NewScheme()
 	if err := core_v1.AddToScheme(scheme); err != nil {
-		log.Println(err)
+		resultChan <- Result{"", "", err}
+		return
 	}
 
 	parameterCodec := runtime.NewParameterCodec(scheme)
 	req.VersionedParams(&core_v1.PodExecOptions{
-		Command:   strings.Fields(command),
+		Command:   command,
 		Container: containerName,
-		Stdin:     stdin != nil,
+		Stdin:     false,
 		Stdout:    true,
 		Stderr:    true,
 		TTY:       false,
 	}, parameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	config, err := k.getClientConfig()
 	if err != nil {
-		log.Println(err)
+		resultChan <- Result{"", "", err}
+		return
 	}
 
-	//var stdout, stderr bytes.Buffer
-	stdout := new(Buffer)
-	stderr := new(bytes.Buffer)
-	ch := make(chan bool)
-	go func(stdin *bytes.Buffer, stdout *Buffer, stderr *bytes.Buffer, ch chan bool) {
+	exec, err := remotecommand.NewSPDYExecutor(config, "POST", req.URL())
+	if err != nil {
+		resultChan <- Result{"", "", err}
+		return
+	}
+
+	var stdout, stderr Buffer
+	go func(stdout *Buffer, stderr *Buffer, signal chan bool) {
 		err = exec.Stream(remotecommand.StreamOptions{
 			Stdin:  nil,
 			Stdout: stdout,
@@ -71,40 +63,60 @@ func ExecToPodThroughAPI(command, containerName, podName, namespace string, stdi
 			Tty:    false,
 		})
 		if err != nil {
-			log.Println(err)
-			ch <- false
+			resultChan <- Result{"", "", err}
+			return
 		}
-		ch <- true
-	}(nil, stdout, stderr, ch)
-	buf := bufio.NewReader(stdout)
+		signal <- true
+	}(&stdout, &stderr, signal)
+
+	stdoutReader := bufio.NewReader(&stdout)
+	stderrReader := bufio.NewReader(&stderr)
+
 	isFinished := false
 	for !isFinished {
 		select {
-		case _, ok := <-ch:
+		case _, ok := <-signal:
 			if ok {
 				isFinished = true
+				stdoutResponse := getMessage(stdoutReader, "stdout")
+				if stdoutResponse.Error != io.EOF {
+					resultChan <- stdoutResponse
+				}
+				stderrResponse := getMessage(stderrReader, "stderr")
+				if stderrResponse.Error != io.EOF {
+					resultChan <- stderrResponse
+				}
 			}
 		default:
-			line, _, _ := buf.ReadLine()
-			log.Println(line)
-			if len(line) == 0 {
-				time.Sleep(time.Second)
-				break
+			stdoutResponse := getMessage(stdoutReader, "stdout")
+			if stdoutResponse.Error != io.EOF {
+				resultChan <- stdoutResponse
 			}
-			var b strings.Builder
-			b.WriteString(`{"message" : "`)
-			b.WriteString(string(line))
-			b.WriteString(`"}`)
-			req := esapi.IndexRequest{
-				Index: "test",
-				Body:  strings.NewReader(b.String()),
+			stderrResponse := getMessage(stderrReader, "stderr")
+			if stderrResponse.Error != io.EOF {
+				resultChan <- stderrResponse
 			}
-			res, err := req.Do(context.Background(), es)
-			if err != nil {
-				log.Fatalf("Error getting response: %s", err)
-			}
-			defer res.Body.Close()
-			time.Sleep(time.Second)
 		}
+		time.Sleep(time.Second * 1)
+	}
+}
+
+func getMessage(stdReader *bufio.Reader, msgType string) Result {
+	stdResponse, err := flushLog(stdReader)
+	if err != nil {
+		return Result{"", "", err}
+	}
+	return Result{Message: stdResponse, Type: msgType, Error: nil}
+}
+
+func flushLog(reader *bufio.Reader) (string, error) {
+	p := make([]byte, 1024*100)
+	n, err := reader.Read(p)
+	if n != 0 && err == nil {
+		return string(p[:n]), nil
+	} else if err != nil && err == io.EOF && n != 0 {
+		return string(p[:n]), nil
+	} else {
+		return "", err
 	}
 }

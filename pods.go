@@ -5,28 +5,21 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-func getPodsFromStatefulSet(name string) []string {
+func (k *Kube) GetPodsFromStatefulSet(statefulset string, namespace string) ([]string, error) {
 	var podsList []string
-	config, err := GetClientConfig()
+	statefulSet, err := k.clientset.AppsV1().StatefulSets("app").Get(statefulset, metav1.GetOptions{})
 	if err != nil {
-		panic(err)
-	}
-
-	clientset, err := GetClientsetFromConfig(config)
-	if err != nil {
-		panic(err)
-	}
-	statefulSet, err := clientset.AppsV1().StatefulSets("app").Get(name, metav1.GetOptions{})
-	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	set := labels.Set(statefulSet.Spec.Selector.MatchLabels)
-	pods, err := clientset.CoreV1().Pods("app").List(metav1.ListOptions{LabelSelector: set.AsSelector().String()})
+	pods, err := k.clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: set.AsSelector().String()})
+	if err != nil {
+		return nil, err
+	}
 
 	for _, pod := range pods.Items {
 		podsList = append(podsList, pod.Name)
 	}
-
-	return podsList
+	return podsList, nil
 }

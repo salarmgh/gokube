@@ -4,25 +4,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func ListStatefulSets() []string {
+func (k *Kube) ListStatefulSets(namespace string) ([]string, error) {
 	var statefulSetNames []string
-	config, err := GetClientConfig()
+	statefulSets, err := k.clientset.AppsV1().StatefulSets(namespace).List(metav1.ListOptions{})
 	if err != nil {
-		panic(err)
-	}
-
-	clientset, err := GetClientsetFromConfig(config)
-	if err != nil {
-		panic(err)
-	}
-	statefulSets, err := clientset.AppsV1().StatefulSets("app").List(metav1.ListOptions{})
-	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	for _, statefulSet := range statefulSets.Items {
 		statefulSetNames = append(statefulSetNames, statefulSet.ObjectMeta.Name)
 	}
 
-	return statefulSetNames
+	return statefulSetNames, nil
 }

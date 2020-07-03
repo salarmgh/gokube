@@ -1,24 +1,40 @@
 package gokube
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
-func GetClientset() (*kubernetes.Clientset, error) {
-	config, err := GetClientConfig()
+func (k *Kube) GetClientset() error {
+	config, err := k.getClientConfig()
 	if err != nil {
-		return nil, err
+		return err
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
 	}
 
-	return GetClientsetFromConfig(config)
+	k.clientset = clientset
+	return nil
 }
 
-func GetRESTClient() (*rest.RESTClient, error) {
-	config, err := GetClientConfig()
+func (k *Kube) getClientConfig() (*rest.Config, error) {
+	config, err := rest.InClusterConfig()
 	if err != nil {
-		return &rest.RESTClient{}, err
+		err1 := err
+		kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			err = fmt.Errorf("InClusterConfig as well as BuildConfigFromFlags Failed. Error in InClusterConfig: %+v\nError in BuildConfigFromFlags: %+v", err1, err)
+			return nil, err
+		}
 	}
 
-	return rest.RESTClientFor(config)
+	return config, nil
 }
