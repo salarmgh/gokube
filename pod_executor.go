@@ -63,7 +63,9 @@ func (k *Kube) ExecToPod(command []string, containerName string, podName string,
 			Tty:    false,
 		})
 		if err != nil {
-			resultChan <- Result{"", "", err}
+			stderrReader := bufio.NewReader(&stderr)
+			stderrResponse := getMessage(stderrReader, "stderr")
+			resultChan <- stderrResponse
 			return
 		}
 		signal <- true
