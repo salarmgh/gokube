@@ -7,7 +7,7 @@ import (
 
 func (k *Kube) GetPodsFromStatefulSet(statefulset string, namespace string) ([]string, error) {
 	var podsList []string
-	statefulSet, err := k.clientset.AppsV1().StatefulSets("app").Get(statefulset, metav1.GetOptions{})
+	statefulSet, err := k.clientset.AppsV1().StatefulSets(namespace).Get(statefulset, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
