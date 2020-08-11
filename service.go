@@ -50,11 +50,12 @@ func (k *Kube) GetActiveEnv(deployment string, namespace string) (string, error)
 	return svc.Spec.Selector["app.env"], nil
 }
 
-func (k *Kube) GetActiveEnvImage(deployment string, namespace string) (string, error) {
+func (k *Kube) GetActiveEnvDeployment(deployment string, namespace string) (string, error) {
 	env, err := k.GetActiveEnv(deployment, namespace)
 	if err != nil {
 		return "", err
 	}
 	dep, err := k.GetDeployment(deployment, namespace, map[string]string{"app.env": env})
-	return dep.Spec.Template.Spec.Containers[0].Image, nil
+	//return dep.Spec.Template.Spec.Containers[0].Image, nil
+	return dep, nil
 }
