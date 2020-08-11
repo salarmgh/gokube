@@ -65,8 +65,9 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 				Spec: core.PodSpec{
 					Containers: []core.Container{
 						{
-							Name:  name,
-							Image: image,
+							Name:    name,
+							Image:   image,
+							Command: command,
 						},
 					},
 					RestartPolicy: "Never",
