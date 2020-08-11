@@ -54,6 +54,6 @@ func (k *Kube) GetActiveEnvImage(deployment string, namespace string) (string, e
 	if err != nil {
 		return "", err
 	}
-	deployment, err := getDeployment(deployment, namespaces, map[string]string{"app.env": env})
-	return deployment, nil
+	dep, err := getDeployment(deployment, namespace, map[string]string{"app.env": env})
+	return dep, nil
 }
