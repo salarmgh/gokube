@@ -59,6 +59,10 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Labels: map[string]string{
+				"digiops": "true",
+				"logger":  "true",
+			},
 		},
 		Spec: batchv1.JobSpec{
 			Template: core.PodTemplateSpec{
