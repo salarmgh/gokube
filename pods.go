@@ -54,7 +54,7 @@ func (k *Kube) CreatePod(name string, namespace string, image string, command []
 	return nil
 }
 
-func (k *Kube) CreateJob(name string, namespace string, image string, command []string) error {
+func (k *Kube) CreateJob(name string, namespace string, image string, command []string, args []string) error {
 	jobConfig := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -68,6 +68,7 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 							Name:    name,
 							Image:   image,
 							Command: command,
+							Args:    args,
 						},
 					},
 					RestartPolicy: "Never",
