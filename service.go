@@ -3,6 +3,7 @@ package gokube
 import (
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -31,10 +32,10 @@ func (k *Kube) GetService(name string, namespace string, selector map[string]str
 	return &svcs.Items[0], nil
 }
 
-func (k *Kube) GetDeployment(name string, namespace string, selector map[string]string) (*apiv1.Service, error) {
+func (k *Kube) GetDeployment(name string, namespace string, selector map[string]string) (*appsv1.Deployment, error) {
 	set := labels.Set(selector)
 	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
-	deployments, err := k.clientset.CoreV1().Deployments(namespace).List(listOptions)
+	deployments, err := k.clientset.AppsV1().Deployments(namespace).List(listOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -49,11 +50,11 @@ func (k *Kube) GetActiveEnv(deployment string, namespace string) (string, error)
 	return svc.Spec.Selector["app.env"], nil
 }
 
-func (k *Kube) GetActiveEnvImage(deployment string, namespace string) (string, error) {
+func (k *Kube) GetActiveEnvImage(deployment string, namespace string) (*appsv1.Deployment, error) {
 	env, err := k.GetActiveEnv(deployment, namespace)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	dep, err := getDeployment(deployment, namespace, map[string]string{"app.env": env})
+	dep, err := k.GetDeployment(deployment, namespace, map[string]string{"app.env": env})
 	return dep, nil
 }
