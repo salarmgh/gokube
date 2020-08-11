@@ -54,7 +54,7 @@ func (k *Kube) CreatePod(name string, namespace string, image string, command []
 	return nil
 }
 
-func (k *Kube) CreateJob(name string, namespace string, image string, command []string, args []string, env map[string]string) error {
+func (k *Kube) CreateJob(name string, namespace string, image string, command []string, args []string, env map[string]string, volumes []core.Volume, mounts []core.VolumeMount) error {
 	var envs []core.EnvVar
 	for k, v := range env {
 		envs = append(envs, core.EnvVar{Name: k, Value: v})
@@ -77,14 +77,16 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 				Spec: core.PodSpec{
 					Containers: []core.Container{
 						{
-							Name:    name,
-							Image:   image,
-							Command: command,
-							Args:    args,
-							Env:     envs,
+							Name:         name,
+							Image:        image,
+							Command:      command,
+							Args:         args,
+							Env:          envs,
+							VolumeMounts: mounts,
 						},
 					},
 					RestartPolicy: "Never",
+					Volumes:       volumes,
 				},
 			},
 		},
