@@ -54,7 +54,7 @@ func (k *Kube) CreatePod(name string, namespace string, image string, command []
 	return nil
 }
 
-func (k *Kube) CreateJob(name string, namespace string, image string, command []string, args []string, env map[string]string, volumes []core.Volume, mounts []core.VolumeMount) error {
+func (k *Kube) CreateJob(name string, namespace string, image string, command []string, args []string, labels map[string]string, env map[string]string, volumes []core.Volume, mounts []core.VolumeMount) error {
 	var envs []core.EnvVar
 	for k, v := range env {
 		envs = append(envs, core.EnvVar{Name: k, Value: v})
@@ -69,10 +69,7 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      name,
 					Namespace: namespace,
-					Labels: map[string]string{
-						"digiops": "true",
-						"logger":  "true",
-					},
+					Labels:    labels,
 				},
 				Spec: core.PodSpec{
 					Containers: []core.Container{
