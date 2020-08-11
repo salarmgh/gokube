@@ -52,3 +52,29 @@ func (k *Kube) CreatePod(name string, namespace string, image string, command []
 	}
 	return nil
 }
+
+func (k *Kube) CreateJob(name string, namespace string, image string, command []string) error {
+	jobConfig := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: batchv1.JobSpec{
+			Template: apiv1.PodTemplateSpec{
+				Spec: apiv1.PodSpec{
+					Containers: []apiv1.Container{
+						{
+							Name:  name,
+							Image: image,
+						},
+					},
+				},
+			},
+		},
+	}
+	job, err := k.clientset.BatchV1().Jobs(jobConfig.Namespace).Create(jobConfig)
+	if err != nil {
+		return err
+	}
+	return nil
+}
