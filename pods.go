@@ -1,6 +1,7 @@
 package gokube
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -60,9 +61,9 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 			Namespace: namespace,
 		},
 		Spec: batchv1.JobSpec{
-			Template: apiv1.PodTemplateSpec{
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
+			Template: core.PodTemplateSpec{
+				Spec: core.PodSpec{
+					Containers: []core.Container{
 						{
 							Name:  name,
 							Image: image,
@@ -72,7 +73,7 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 			},
 		},
 	}
-	job, err := k.clientset.BatchV1().Jobs(jobConfig.Namespace).Create(jobConfig)
+	_, err := k.clientset.BatchV1().Jobs(jobConfig.Namespace).Create(jobConfig)
 	if err != nil {
 		return err
 	}
