@@ -69,6 +69,7 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 							Image: image,
 						},
 					},
+					RestartPolicy: "Never",
 				},
 			},
 		},
