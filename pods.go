@@ -26,7 +26,7 @@ func (k *Kube) GetPodsFromStatefulSet(statefulset string, namespace string) ([]s
 }
 
 func (k *Kube) CreatePod(name string, namespace string, image string, command []string) error {
-	pod := core.Pod{
+	pod := &core.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -46,7 +46,7 @@ func (k *Kube) CreatePod(name string, namespace string, image string, command []
 			},
 		},
 	}
-	pod, err = k.clientset.CoreV1().Pods(pod.Namespace).Create(pod)
+	pod, err := k.clientset.CoreV1().Pods(pod.Namespace).Create(pod)
 	if err != nil {
 		return err
 	}
