@@ -55,7 +55,6 @@ func (k *Kube) GetActiveEnvDeployment(deployment string, namespace string) (*app
 	if err != nil {
 		return nil, err
 	}
-	dep, err := k.GetDeployment(deployment, namespace, map[string]string{"app.env": env})
-	//return dep.Spec.Template.Spec.Containers[0].Image, nil
+	dep, err := k.GetDeployment(deployment, namespace, map[string]string{"app.env": env, "app.kubernetes.io/instance": deployment})
 	return dep, nil
 }
