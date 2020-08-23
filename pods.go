@@ -94,3 +94,12 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 	}
 	return nil
 }
+
+func (k *Kube) DeleteJob(name string, namespace string) error {
+	deleteOptions := metav1.DeleteOptions{}
+	err := k.clientset.BatchV1().Jobs(namespace).Delete(name, &deleteOptions)
+	if err != nil {
+		return err
+	}
+	return nil
+}
