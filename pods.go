@@ -59,6 +59,7 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 	for k, v := range env {
 		envs = append(envs, core.EnvVar{Name: k, Value: v})
 	}
+	var backoffLimit int32
 	jobConfig := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -86,6 +87,7 @@ func (k *Kube) CreateJob(name string, namespace string, image string, command []
 					Volumes:       volumes,
 				},
 			},
+			BackoffLimit: &backoffLimit,
 		},
 	}
 	_, err := k.clientset.BatchV1().Jobs(jobConfig.Namespace).Create(jobConfig)
