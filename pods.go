@@ -103,3 +103,19 @@ func (k *Kube) DeleteJob(name string, namespace string) error {
 	}
 	return nil
 }
+
+func (k *Kube) JobStatus(name string, namespace string) (string, error) {
+	getOptions := metav1.GetOptions{}
+	job, err := k.clientset.BatchV1().Jobs(namespace).Get(name, getOptions)
+	if err != nil {
+		return "", err
+	}
+	if job.Status.Active > 0 {
+		return "Running", nil
+	} else {
+		if job.Status.Succeeded > 0 {
+			return "Completed", nil
+		}
+	}
+	return "Failed", nil
+}
